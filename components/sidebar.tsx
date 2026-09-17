@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ListTodo, Building2, UserCog, Briefcase, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ListTodo, Building2, UserCog, Briefcase, BarChart3, Info } from "lucide-react";
 import { APP_TITLE } from "@/lib/constants";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -77,21 +77,37 @@ export function Sidebar() {
             </div>
           </div>
         ))}
+
+        {/* Guide link — below nav with space */}
+        <div className="mt-4">
+          <Link
+            href="/guide"
+            className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors"
+            style={
+              pathname === "/guide"
+                ? { background: "var(--sidebar-active)", color: "var(--foreground)" }
+                : { color: "var(--muted-foreground)" }
+            }
+            onMouseEnter={(e) => {
+              if (pathname !== "/guide") e.currentTarget.style.background = "var(--sidebar-hover)";
+            }}
+            onMouseLeave={(e) => {
+              if (pathname !== "/guide") e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <Info className="size-4 shrink-0" />
+            Guide & legend
+          </Link>
+        </div>
       </nav>
 
-      {/* User footer */}
-      <SidebarFooter />
+      {/* Footer — theme toggle */}
+      <div
+        className="shrink-0 border-t px-3 py-3 flex items-center justify-end"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <ThemeToggle />
+      </div>
     </aside>
-  );
-}
-
-function SidebarFooter() {
-  return (
-    <div
-      className="shrink-0 border-t px-3 py-3 flex items-center justify-end"
-      style={{ borderColor: "var(--border)" }}
-    >
-      <ThemeToggle />
-    </div>
   );
 }

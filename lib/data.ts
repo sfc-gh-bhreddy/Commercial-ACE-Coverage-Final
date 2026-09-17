@@ -243,6 +243,17 @@ ace_map AS (
         PARTITION BY ACCOUNT_ID
         ORDER BY USE_CASES DESC, LAST_TOUCH DESC
     ) = 1
+),
+-- deal_reg: approved Salesforce deal registrations on the Cap1 opportunity
+-- (the "SPN: Deal Registrations" field). If the opp has an accepted partner
+-- registration, SI is involved regardless of the use-case mix.
+deal_reg AS (
+    SELECT
+        SALESFORCE_OPPORTUNITY_ID                          AS opportunity_id,
+        MAX(SALESFORCE_DEAL_REGISTRATION_PARTNER_NAME)     AS dr_partner_name
+    FROM SNOW_CERTIFIED.PARTNER.DD_SALESFORCE_DEAL_REGISTRATION
+    WHERE SALESFORCE_DEAL_REGISTRATION_APPROVAL_STATUS = 'Approved'
+    GROUP BY 1
 )
 SELECT
     c.OPPORTUNITY_ID                                          AS OPPORTUNITY_ID,
@@ -285,9 +296,11 @@ SELECT
     CASE WHEN ah.TOPIC_ID IS NOT NULL THEN 'detected'
          ELSE COALESCE(oi.topic_confidence, 'inferred')
     END                                                       AS TOPIC_CONFIDENCE,     
-    (si.account_id IS NOT NULL AND si.open_ucs > 0 AND si.open_ucs = si.open_si_ucs)
-                                                              AS IS_SI_INVOLVED,
-    si.si_partner_name                                       AS SI_PARTNER_NAME
+    (
+        (si.account_id IS NOT NULL AND si.open_ucs > 0 AND si.open_ucs = si.open_si_ucs)
+        OR dr.opportunity_id IS NOT NULL
+    )                                                         AS IS_SI_INVOLVED,
+    COALESCE(si.si_partner_name, dr.dr_partner_name)          AS SI_PARTNER_NAME
 FROM cap1 c
 CROSS JOIN params p
 LEFT JOIN tmr               t   ON t.account_id   = c.SALESFORCE_ACCOUNT_ID
@@ -304,6 +317,7 @@ LEFT JOIN opp_intent       oi  ON oi.opportunity_id = c.OPPORTUNITY_ID
 LEFT JOIN TEMP.BHREDDY.ACE_TOPIC_HINTS ah ON ah.OPPORTUNITY_ID = c.OPPORTUNITY_ID
 LEFT JOIN ace_map am ON am.ACCOUNT_ID = c.SALESFORCE_ACCOUNT_ID
 LEFT JOIN si_partner si ON si.account_id = c.SALESFORCE_ACCOUNT_ID
+LEFT JOIN deal_reg   dr ON dr.opportunity_id = c.OPPORTUNITY_ID
 ORDER BY c.CAP1_ACV DESC
 `;
 
